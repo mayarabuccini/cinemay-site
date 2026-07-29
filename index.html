@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cinemay — Entrar no canal</title>
+<meta name="description" content="As séries mais recentes do Cinemay. Toque para continuar no Telegram.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,500&display=swap" rel="stylesheet">
+
+<script>
+/* ============================================================
+   CONFIGURACAO — mexa so aqui
+   ============================================================ */
+const CONFIG = {
+  // @username do canal (so pra exibir na tela)
+  CANAL: "@cine_may",
+
+  // Link que abre o Telegram. Pode ser t.me/seucanal ou link de convite
+  LINK_TELEGRAM: "https://t.me/cine_may",
+
+  // Textos da capa
+  TITULO: "As séries ficam aqui.\nO resto fica no Telegram.",
+  SUBTITULO: "As últimas séries do canal. Toque em qualquer capa pra continuar por lá.",
+  CHAMADA: "Abrir no Telegram",
+
+  // Fonte 1 (recomendada): lista pronta hospedada do lado do HTML.
+  // Formato: [{ "url": "https://...jpg", "legenda": "opcional" }]
+  // Deixe "" pra desligar.
+  JSON_FOTOS: "fotos.json",
+
+  // Fonte 2 (opcional): token do bot admin do canal.
+  // ATENCAO: fica visivel no codigo-fonte da pagina. Use um bot dedicado.
+  BOT_TOKEN: "",
+
+  // Quantas fotos exibir no maximo
+  MAX_FOTOS: 24,
+
+  // Mostra blocos de exemplo enquanto voce nao configurou nada
+  DEMO: false
+};
+</script>
+
+<style>
+  :root{
+    --tinta:      #0a0a0a;
+    --tinta-alta: #1a1a1a;
+    --linha:      rgba(255,255,255,.08);
+    --claro:      #ffffff;
+    --apagado:    #a6a6a6;
+    --ouro:       #E50914;
+    --enviado:    #2fb86a;
+    --raio: 8px;
+    --display: "Poppins", system-ui, sans-serif;
+    --corpo: "Poppins", system-ui, sans-serif;
+    --mono: "Poppins", system-ui, sans-serif;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{ margin:0; padding:0; }
+
+  body{
+    background:
+      radial-gradient(120% 80% at 80% -10%, #3a0508 0%, transparent 60%),
+      var(--tinta);
+    color:var(--claro);
+    font-family:var(--corpo);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+    padding-bottom:96px;
+  }
+
+  .faixa{ width:min(1080px, 92vw); margin-inline:auto; }
+
+  /* ---------- capa ---------- */
+  .capa{ padding:56px 0 36px; }
+
+  .logo{
+    font-family:var(--display);
+    font-weight:800;
+    font-size:22px;
+    letter-spacing:.04em;
+    margin:0 0 26px;
+  }
+  .logo span{ color:var(--ouro); }
+
+  .sobrancelha{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--ouro);
+    display:flex; align-items:center; gap:10px;
+    margin:0 0 22px;
+  }
+  .sobrancelha::before{
+    content:""; width:8px; height:8px; border-radius:50%;
+    background:var(--enviado);
+    box-shadow:0 0 0 0 rgba(53,195,167,.55);
+    animation:pulso 2.4s ease-out infinite;
+  }
+  @keyframes pulso{
+    0%{ box-shadow:0 0 0 0 rgba(53,195,167,.5); }
+    70%{ box-shadow:0 0 0 12px rgba(53,195,167,0); }
+    100%{ box-shadow:0 0 0 0 rgba(53,195,167,0); }
+  }
+
+  h1{
+    font-family:var(--display);
+    font-weight:800;
+    font-size:clamp(34px, 8.5vw, 68px);
+    line-height:1.02;
+    letter-spacing:-0.03em;
+    margin:0 0 18px;
+    white-space:pre-line;
+  }
+
+  .sub{
+    color:var(--apagado);
+    font-size:clamp(15px, 4vw, 18px);
+    max-width:46ch;
+    margin:0 0 30px;
+  }
+
+  /* ---------- balao de envio (elemento assinatura) ---------- */
+  .balao{
+    -webkit-appearance:none; appearance:none; border:0;
+    display:inline-flex; align-items:center; gap:12px;
+    background:var(--ouro);
+    color:#ffffff;
+    font-family:var(--corpo);
+    font-weight:700;
+    font-size:17px;
+    padding:16px 24px;
+    border-radius:22px 22px 22px 6px;
+    text-decoration:none;
+    cursor:pointer;
+    position:relative;
+    transition:transform .35s cubic-bezier(.2,.9,.25,1.2), box-shadow .3s;
+    box-shadow:0 10px 30px -12px rgba(229,9,20,.55);
+  }
+  .balao:hover,
+  .balao:focus-visible{ transform:translateX(6px) translateY(-2px); }
+  .balao .ticks{
+    display:inline-flex; width:20px; opacity:.35;
+    transition:opacity .3s;
+  }
+  .balao:hover .ticks{ opacity:1; color:#0F7A66; }
+
+  .rodape-capa{
+    font-family:var(--mono);
+    font-size:12.5px;
+    color:var(--apagado);
+    margin-top:18px;
+  }
+  .rodape-capa b{ color:var(--claro); font-weight:500; }
+
+  /* ---------- galeria ---------- */
+  .titulo-secao{
+    display:flex; align-items:baseline; justify-content:space-between;
+    gap:16px;
+    border-top:1px solid var(--linha);
+    padding-top:16px; margin-top:12px;
+  }
+  .titulo-secao h2{
+    font-family:var(--display); font-weight:700;
+    font-size:20px; letter-spacing:-.01em; margin:0;
+  }
+  .contador{ font-family:var(--mono); font-size:12px; color:var(--apagado); }
+
+  .grade{
+    columns:2;
+    column-gap:12px;
+    margin:22px 0 40px;
+  }
+  @media (min-width:720px){ .grade{ columns:3; column-gap:16px; } }
+  @media (min-width:1000px){ .grade{ columns:4; } }
+
+  .cartao{
+    break-inside:avoid;
+    margin:0 0 12px;
+    position:relative;
+    border-radius:var(--raio);
+    overflow:hidden;
+    background:var(--tinta-alta);
+    border:1px solid var(--linha);
+    display:block;
+    width:100%; padding:0;
+    cursor:zoom-in;
+    opacity:0; transform:translateY(14px);
+    transition:opacity .5s ease, transform .5s ease;
+  }
+  .cartao.visivel{ opacity:1; transform:none; }
+  .cartao img{ display:block; width:100%; height:auto; }
+  .cartao figcaption{
+    position:absolute; inset:auto 0 0 0;
+    padding:26px 12px 10px;
+    font-size:12.5px; text-align:left;
+    color:var(--claro);
+    background:linear-gradient(transparent, rgba(9,14,24,.88));
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .cartao.exemplo{
+    aspect-ratio:3/4;
+    display:grid; place-items:center;
+    font-family:var(--mono); font-size:11px; color:var(--apagado);
+    letter-spacing:.14em; text-transform:uppercase;
+    background:
+      repeating-linear-gradient(135deg, rgba(255,255,255,.03) 0 10px, transparent 10px 20px),
+      var(--tinta-alta);
+    cursor:default;
+  }
+  .cartao.exemplo:nth-child(3n){ aspect-ratio:1/1; }
+  .cartao.exemplo:nth-child(4n){ aspect-ratio:4/5; }
+
+  /* ---------- avisos ---------- */
+  .aviso{
+    border:1px solid var(--linha);
+    border-left:3px solid var(--ouro);
+    background:var(--tinta-alta);
+    border-radius:12px;
+    padding:16px 18px;
+    margin:0 0 26px;
+    font-size:14.5px;
+    color:var(--apagado);
+  }
+  .aviso b{ color:var(--claro); font-weight:700; display:block; margin-bottom:4px; font-family:var(--display); }
+  .aviso code{ font-family:var(--mono); font-size:13px; color:var(--ouro); }
+
+  /* ---------- barra fixa ---------- */
+  .barra{
+    position:fixed; inset:auto 0 0 0; z-index:40;
+    background:rgba(16,26,43,.86);
+    backdrop-filter:blur(14px);
+    border-top:1px solid var(--linha);
+    padding:12px 0 calc(12px + env(safe-area-inset-bottom));
+  }
+  .barra .faixa{ display:flex; align-items:center; justify-content:space-between; gap:14px; }
+  .barra .canal{ font-family:var(--mono); font-size:13px; color:var(--apagado); }
+  .barra .balao{ padding:13px 20px; font-size:15px; }
+
+  /* ---------- lightbox ---------- */
+  .lupa{
+    position:fixed; inset:0; z-index:80;
+    background:rgba(7,11,19,.94);
+    display:none; place-items:center;
+    padding:20px;
+  }
+  .lupa.aberta{ display:grid; }
+  .lupa img{ max-width:100%; max-height:76vh; border-radius:14px; }
+  .lupa .acoes{ margin-top:20px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+  .fechar{
+    background:transparent; border:1px solid var(--linha); color:var(--claro);
+    font-family:var(--corpo); font-size:15px; padding:13px 20px; border-radius:22px; cursor:pointer;
+  }
+
+  a:focus-visible, button:focus-visible{
+    outline:2px solid var(--enviado); outline-offset:3px;
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *{ animation:none !important; transition:none !important; }
+    .cartao{ opacity:1; transform:none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="capa faixa">
+  <div class="logo">CINE<span>MAY</span></div>
+  <p class="sobrancelha" id="sobrancelha">canal ao vivo</p>
+  <h1 id="titulo"></h1>
+  <p class="sub" id="subtitulo"></p>
+  <a class="balao" id="cta-topo" href="#">
+    <span id="cta-texto"></span>
+    <svg class="ticks" viewBox="0 0 24 16" fill="none" aria-hidden="true">
+      <path d="M1 8.5 5.5 13 14 3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M9.5 8.5 14 13 22.5 3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </a>
+  <p class="rodape-capa">canal <b id="nome-canal"></b> · <span id="carimbo">carregando fotos…</span></p>
+</header>
+
+<main class="faixa">
+  <div id="area-aviso"></div>
+
+  <div class="titulo-secao">
+    <h2>Últimas do canal</h2>
+    <span class="contador" id="contador">—</span>
+  </div>
+
+  <div class="grade" id="grade"></div>
+</main>
+
+<div class="barra">
+  <div class="faixa">
+    <span class="canal" id="canal-barra"></span>
+    <a class="balao" id="cta-barra" href="#">
+      <span>Entrar</span>
+      <svg class="ticks" viewBox="0 0 24 16" fill="none" aria-hidden="true">
+        <path d="M1 8.5 5.5 13 14 3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9.5 8.5 14 13 22.5 3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+  </div>
+</div>
+
+<div class="lupa" id="lupa" role="dialog" aria-modal="true" aria-label="Foto ampliada">
+  <div>
+    <img id="lupa-img" alt="">
+    <div class="acoes">
+      <a class="balao" id="lupa-cta" href="#">
+        <span>Ver no Telegram</span>
+        <svg class="ticks" viewBox="0 0 24 16" fill="none" aria-hidden="true">
+          <path d="M1 8.5 5.5 13 14 3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M9.5 8.5 14 13 22.5 3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+      <button class="fechar" id="lupa-fechar">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const $ = id => document.getElementById(id);
+
+  /* ---------- preenche textos ---------- */
+  $("titulo").textContent    = CONFIG.TITULO;
+  $("subtitulo").textContent = CONFIG.SUBTITULO;
+  $("cta-texto").textContent = CONFIG.CHAMADA;
+  $("nome-canal").textContent = CONFIG.CANAL;
+  $("canal-barra").textContent = CONFIG.CANAL;
+  ["cta-topo","cta-barra","lupa-cta"].forEach(id => {
+    const a = $(id);
+    a.href = CONFIG.LINK_TELEGRAM;
+    a.target = "_blank";
+    a.rel = "noopener";
+  });
+
+  /* ---------- fonte 1: fotos.json ---------- */
+  async function daListaFixa(){
+    if(!CONFIG.JSON_FOTOS) return [];
+    const r = await fetch(CONFIG.JSON_FOTOS, { cache:"no-store" });
+    if(!r.ok) throw new Error("fotos.json respondeu " + r.status);
+    const dados = await r.json();
+    if(!Array.isArray(dados)) throw new Error("fotos.json precisa ser uma lista");
+    return dados
+      .filter(f => f && f.url)
+      .map(f => ({ url:f.url, legenda:f.legenda || "", chave:f.url }));
+  }
+
+  /* ---------- fonte 2: Bot API ---------- */
+  async function doBot(){
+    if(!CONFIG.BOT_TOKEN) return [];
+    const base = "https://api.telegram.org/bot" + CONFIG.BOT_TOKEN;
+
+    const r = await fetch(base + "/getUpdates?limit=100");
+    const j = await r.json();
+    if(!j.ok) throw new Error(j.description || "getUpdates falhou");
+
+    const brutas = [];
+    for(const u of j.result){
+      const post = u.channel_post || u.message;
+      if(!post || !Array.isArray(post.photo) || !post.photo.length) continue;
+      const maior = post.photo[post.photo.length - 1];
+      brutas.push({
+        file_id: maior.file_id,
+        chave: maior.file_unique_id,
+        legenda: post.caption || "",
+        data: post.date || 0
+      });
+    }
+
+    brutas.sort((a,b) => b.data - a.data);
+    const recorte = brutas.slice(0, CONFIG.MAX_FOTOS);
+
+    const resolvidas = await Promise.all(recorte.map(async f => {
+      try{
+        const rf = await fetch(base + "/getFile?file_id=" + encodeURIComponent(f.file_id));
+        const jf = await rf.json();
+        if(!jf.ok) return null;
+        return {
+          url: "https://api.telegram.org/file/bot" + CONFIG.BOT_TOKEN + "/" + jf.result.file_path,
+          legenda: f.legenda,
+          chave: f.chave
+        };
+      }catch(_){ return null; }
+    }));
+
+    return resolvidas.filter(Boolean);
+  }
+
+  /* ---------- montagem ---------- */
+  const observador = new IntersectionObserver(entradas => {
+    entradas.forEach(e => { if(e.isIntersecting){ e.target.classList.add("visivel"); observador.unobserve(e.target); } });
+  }, { rootMargin:"120px" });
+
+  function desenhar(fotos){
+    const grade = $("grade");
+    grade.innerHTML = "";
+    fotos.slice(0, CONFIG.MAX_FOTOS).forEach((f, i) => {
+      const fig = document.createElement("figure");
+      fig.className = "cartao";
+      fig.tabIndex = 0;
+      fig.setAttribute("role", "button");
+      fig.style.transitionDelay = Math.min(i * 40, 400) + "ms";
+
+      const img = document.createElement("img");
+      img.src = f.url;
+      img.loading = "lazy";
+      img.alt = f.legenda || "Foto publicada no canal";
+      fig.appendChild(img);
+
+      if(f.legenda){
+        const cap = document.createElement("figcaption");
+        cap.textContent = f.legenda;
+        fig.appendChild(cap);
+      }
+
+      const abrir = () => ampliar(f);
+      fig.addEventListener("click", abrir);
+      fig.addEventListener("keydown", ev => {
+        if(ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); abrir(); }
+      });
+
+      grade.appendChild(fig);
+      observador.observe(fig);
+    });
+  }
+
+  function desenharExemplos(){
+    const grade = $("grade");
+    grade.innerHTML = "";
+    for(let i = 0; i < 8; i++){
+      const bloco = document.createElement("figure");
+      bloco.className = "cartao exemplo visivel";
+      bloco.textContent = "exemplo";
+      grade.appendChild(bloco);
+    }
+  }
+
+  function ampliar(f){
+    $("lupa-img").src = f.url;
+    $("lupa-img").alt = f.legenda || "Foto ampliada";
+    $("lupa").classList.add("aberta");
+    $("lupa-fechar").focus();
+  }
+  function fechar(){
+    $("lupa").classList.remove("aberta");
+    $("lupa-img").src = "";
+  }
+  $("lupa-fechar").addEventListener("click", fechar);
+  $("lupa").addEventListener("click", e => { if(e.target === $("lupa")) fechar(); });
+  document.addEventListener("keydown", e => { if(e.key === "Escape") fechar(); });
+
+  function avisar(titulo, texto){
+    $("area-aviso").innerHTML =
+      '<div class="aviso"><b>' + titulo + '</b>' + texto + '</div>';
+  }
+
+  /* ---------- inicio ---------- */
+  (async function iniciar(){
+    const problemas = [];
+    let fotos = [];
+
+    try{ fotos = fotos.concat(await daListaFixa()); }
+    catch(e){ problemas.push("lista fixa: " + e.message); }
+
+    try{ fotos = fotos.concat(await doBot()); }
+    catch(e){ problemas.push("bot: " + e.message); }
+
+    // remove repetidas
+    const vistas = new Set();
+    fotos = fotos.filter(f => (vistas.has(f.chave) ? false : (vistas.add(f.chave), true)));
+
+    if(fotos.length){
+      desenhar(fotos);
+      $("contador").textContent = fotos.length + (fotos.length === 1 ? " foto" : " fotos");
+      $("carimbo").textContent = "atualizado às " +
+        new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
+    }else{
+      $("contador").textContent = "nenhuma foto";
+      $("carimbo").textContent = "sem fotos carregadas";
+      if(CONFIG.DEMO) desenharExemplos();
+      avisar(
+        "Falta ligar a fonte das fotos",
+        "Preencha <code>JSON_FOTOS</code> com uma lista de imagens, ou <code>BOT_TOKEN</code> " +
+        "com um bot admin do canal. Lembre que o bot só enxerga posts feitos depois de virar admin, " +
+        "e o Telegram guarda esses posts por cerca de 24 horas." +
+        (problemas.length ? "<br><br>Retorno: " + problemas.join(" · ") : "")
+      );
+    }
+  })();
+})();
+</script>
+</body>
+</html>
