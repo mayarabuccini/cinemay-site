@@ -1,4 +1,4 @@
-replace(replace([
+[
   {
     "url": "imagens/1785423215371.jpg",
     "legenda": "SÓ ME VALORIZARAM QUANDO ME CASEI COM HADES"
@@ -83,4 +83,4 @@ replace(replace([
     "url": "imagens/1785423068003.jpg",
     "legenda": "SÓ ME VALORIZARAM QUANDO ME CASEI COM HADES"
   }
-]; "]"; ", {\"url\": \"imagens/" + String("1785444185975")+ ".jpg\", \"legenda\": \"" + replace(10.`$1`; "\""; "\\\"") + "\"}]"); "]"; ", {\"url\": \"imagens/" + String("1785444205545")+ ".jpg\", \"legenda\": \"" + replace(10.`$1`; "\""; "\\\"") + "\"}]")
+]
