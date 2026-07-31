@@ -34,8 +34,8 @@ const CONFIG = {
   // ATENCAO: fica visivel no codigo-fonte da pagina. Use um bot dedicado.
   BOT_TOKEN: "",
 
-  // Quantas fotos exibir no maximo
-  MAX_FOTOS: 24,
+  // Quantas fotos exibir por pagina (todas continuam disponiveis)
+  FOTOS_POR_PAGINA: 24,
 
   // Mostra blocos de exemplo enquanto voce nao configurou nada
   DEMO: false
@@ -170,6 +170,22 @@ const CONFIG = {
   }
   .contador{ font-family:var(--mono); font-size:12px; color:var(--apagado); }
 
+  .ferramentas{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    margin:20px 0 4px;
+  }
+  .busca{
+    width:min(420px, 100%);
+    background:var(--tinta-alta);
+    color:var(--claro);
+    border:1px solid var(--linha);
+    border-radius:var(--raio);
+    padding:13px 15px;
+    font:500 14px var(--corpo);
+  }
+  .busca::placeholder{ color:var(--apagado); }
+  .busca:focus{ border-color:var(--ouro); outline:none; box-shadow:0 0 0 3px rgba(229,9,20,.15); }
+
   .grade{
     columns:2;
     column-gap:12px;
@@ -202,6 +218,19 @@ const CONFIG = {
     background:linear-gradient(transparent, rgba(9,14,24,.88));
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   }
+
+  .paginacao{
+    display:flex; justify-content:center; align-items:center; gap:8px;
+    flex-wrap:wrap; margin:0 0 42px;
+  }
+  .pagina-botao{
+    min-width:42px; height:42px; padding:0 13px;
+    border:1px solid var(--linha); border-radius:var(--raio);
+    background:var(--tinta-alta); color:var(--claro);
+    font:600 13px var(--corpo); cursor:pointer;
+  }
+  .pagina-botao:hover:not(:disabled), .pagina-botao.ativa{ background:var(--ouro); border-color:var(--ouro); }
+  .pagina-botao:disabled{ opacity:.35; cursor:not-allowed; }
   .cartao.exemplo{
     aspect-ratio:3/4;
     display:grid; place-items:center;
@@ -291,7 +320,12 @@ const CONFIG = {
     <span class="contador" id="contador">—</span>
   </div>
 
+  <div class="ferramentas">
+    <input class="busca" id="busca" type="search" placeholder="Buscar pelo nome da série" aria-label="Buscar pelo nome da série">
+  </div>
+
   <div class="grade" id="grade"></div>
+  <nav class="paginacao" id="paginacao" aria-label="Páginas do catálogo"></nav>
 </main>
 
 <div class="barra">
@@ -377,7 +411,7 @@ const CONFIG = {
     }
 
     brutas.sort((a,b) => b.data - a.data);
-    const recorte = brutas.slice(0, CONFIG.MAX_FOTOS);
+    const recorte = brutas;
 
     const resolvidas = await Promise.all(recorte.map(async f => {
       try{
@@ -400,10 +434,24 @@ const CONFIG = {
     entradas.forEach(e => { if(e.isIntersecting){ e.target.classList.add("visivel"); observador.unobserve(e.target); } });
   }, { rootMargin:"120px" });
 
-  function desenhar(fotos){
+  let todasAsFotos = [];
+  let paginaAtual = 1;
+
+  function fotosFiltradas(){
+    const termo = $("busca").value.trim().toLocaleLowerCase("pt-BR");
+    if(!termo) return todasAsFotos;
+    return todasAsFotos.filter(f => (f.legenda || "").toLocaleLowerCase("pt-BR").includes(termo));
+  }
+
+  function desenhar(){
+    const fotos = fotosFiltradas();
+    const totalPaginas = Math.max(1, Math.ceil(fotos.length / CONFIG.FOTOS_POR_PAGINA));
+    paginaAtual = Math.min(paginaAtual, totalPaginas);
+    const inicio = (paginaAtual - 1) * CONFIG.FOTOS_POR_PAGINA;
+    const fotosDaPagina = fotos.slice(inicio, inicio + CONFIG.FOTOS_POR_PAGINA);
     const grade = $("grade");
     grade.innerHTML = "";
-    fotos.slice(0, CONFIG.MAX_FOTOS).forEach((f, i) => {
+    fotosDaPagina.forEach((f, i) => {
       const fig = document.createElement("figure");
       fig.className = "cartao";
       fig.tabIndex = 0;
@@ -416,11 +464,9 @@ const CONFIG = {
       img.alt = f.legenda || "Foto publicada no canal";
       fig.appendChild(img);
 
-      if(f.legenda){
-        const cap = document.createElement("figcaption");
-        cap.textContent = f.legenda;
-        fig.appendChild(cap);
-      }
+      const cap = document.createElement("figcaption");
+      cap.textContent = f.legenda || "Nome da série não informado";
+      fig.appendChild(cap);
 
       const abrir = () => ampliar(f);
       fig.addEventListener("click", abrir);
@@ -431,7 +477,49 @@ const CONFIG = {
       grade.appendChild(fig);
       observador.observe(fig);
     });
+
+    if(!fotosDaPagina.length){
+      grade.innerHTML = '<div class="aviso"><b>Nenhuma série encontrada</b>Tente buscar por outro nome.</div>';
+    }
+
+    $("contador").textContent = fotos.length + (fotos.length === 1 ? " série" : " séries");
+    desenharPaginacao(totalPaginas);
   }
+
+  function desenharPaginacao(totalPaginas){
+    const nav = $("paginacao");
+    nav.innerHTML = "";
+    if(totalPaginas <= 1) return;
+
+    const adicionar = (texto, pagina, desabilitado, ativa) => {
+      const botao = document.createElement("button");
+      botao.className = "pagina-botao" + (ativa ? " ativa" : "");
+      botao.type = "button";
+      botao.textContent = texto;
+      botao.disabled = desabilitado;
+      botao.addEventListener("click", () => {
+        paginaAtual = pagina;
+        desenhar();
+        $("grade").scrollIntoView({ behavior:"smooth", block:"start" });
+      });
+      nav.appendChild(botao);
+    };
+
+    adicionar("Anterior", paginaAtual - 1, paginaAtual === 1, false);
+    for(let pagina = 1; pagina <= totalPaginas; pagina++){
+      if(totalPaginas <= 7 || pagina === 1 || pagina === totalPaginas || Math.abs(pagina - paginaAtual) <= 1){
+        adicionar(String(pagina), pagina, false, pagina === paginaAtual);
+      }else if((pagina === 2 && paginaAtual > 3) || (pagina === totalPaginas - 1 && paginaAtual < totalPaginas - 2)){
+        const pontos = document.createElement("span");
+        pontos.textContent = "…";
+        pontos.setAttribute("aria-hidden", "true");
+        nav.appendChild(pontos);
+      }
+    }
+    adicionar("Próxima", paginaAtual + 1, paginaAtual === totalPaginas, false);
+  }
+
+  $("busca").addEventListener("input", () => { paginaAtual = 1; desenhar(); });
 
   function desenharExemplos(){
     const grade = $("grade");
@@ -474,13 +562,14 @@ const CONFIG = {
     try{ fotos = fotos.concat(await doBot()); }
     catch(e){ problemas.push("bot: " + e.message); }
 
-    // remove repetidas
+    // remove enderecos repetidos e coloca as inclusoes mais recentes primeiro
     const vistas = new Set();
     fotos = fotos.filter(f => (vistas.has(f.chave) ? false : (vistas.add(f.chave), true)));
+    fotos.reverse();
 
     if(fotos.length){
-      desenhar(fotos);
-      $("contador").textContent = fotos.length + (fotos.length === 1 ? " foto" : " fotos");
+      todasAsFotos = fotos;
+      desenhar();
       $("carimbo").textContent = "atualizado às " +
         new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
     }else{
