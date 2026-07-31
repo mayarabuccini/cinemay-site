@@ -1,4 +1,4 @@
-[
+replace([
   {
     "url": "imagens/1785423215371.jpg",
     "legenda": "SÓ ME VALORIZARAM QUANDO ME CASEI COM HADES"
@@ -84,3 +84,4 @@
     "legenda": "SÓ ME VALORIZARAM QUANDO ME CASEI COM HADES"
   }
 ]
+; "]"; ", {\"url\": \"imagens/" + String("1785518744840")+ ".jpg\", \"legenda\": \"" + replace(10.`$1`; "\""; "\\\"") + "\"}]")
