@@ -183,7 +183,37 @@ def identificar_titulo(caminho):
 
 
 catalogo = carregar_json(ARQUIVO_CATALOGO)
-revisao = carregar_json(ARQUIVO_REVISAO)
+
+urls_catalogo = {
+    item.get("url")
+    for item in catalogo
+    if isinstance(item, dict) and item.get("url")
+}
+
+revisao_pendente = []
+
+for item in revisao:
+    if not isinstance(item, dict):
+        continue
+
+    url = item.get("url", "").strip()
+    legenda = item.get("legenda", "").strip()
+
+    if url and legenda:
+        if url not in urls_catalogo:
+            catalogo.append(
+                {
+                    "url": url,
+                    "legenda": legenda,
+                }
+            )
+            urls_catalogo.add(url)
+
+        print(f"Correção publicada: {legenda}")
+    else:
+        revisao_pendente.append(item)
+
+revisao = revisao_pendente
 
 urls_processadas = {
     item.get("url")
@@ -208,7 +238,7 @@ for caminho in novas_imagens:
 
         registro = {
             "url": url,
-            "legenda": leitura["titulo"],
+            "legenda": "",
             "confianca": leitura["confianca"],
             "texto_encontrado": leitura["texto_encontrado"],
         }
