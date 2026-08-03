@@ -112,5 +112,11 @@
     "legenda": "wil i TG",
     "confianca": "baixa",
     "texto_encontrado": "wil i TG | MS ALAS"
+  },
+  {
+    "url": "imagens/novaserie2.jpeg",
+    "legenda": "6 1K",
+    "confianca": "media",
+    "texto_encontrado": "6 1K"
   }
 ]
