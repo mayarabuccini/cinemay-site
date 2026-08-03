@@ -1,0 +1,53 @@
+name: Atualizar catálogo com OCR
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "imagens/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: atualizar-catalogo
+  cancel-in-progress: false
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar arquivos do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar Tesseract OCR
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-por
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Analisar novas capas
+        run: python scripts/atualizar_catalogo.py
+
+      - name: Salvar resultado no repositório
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add fotos.json revisao.json
+
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração encontrada."
+          else
+            git commit -m "Atualizar catálogo com OCR"
+            git push
+          fi
