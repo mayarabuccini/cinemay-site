@@ -164,7 +164,7 @@ def identificar_titulo(caminho):
     titulo = principal["texto"]
     confianca_ocr = principal["confianca_ocr"]
 
-    if confianca_ocr >= 75 and len(titulo) >= 5:
+   if confianca_ocr >= 75 and len(titulo) >= 12 and len(titulo.split()) >= 3:
         confianca = "alta"
     elif confianca_ocr >= 50:
         confianca = "media"
