@@ -5,7 +5,8 @@ on:
     branches:
       - main
     paths:
-      - "imagens/**"
+    - "imagens/**"
+    - "revisao.json"
   workflow_dispatch:
 
 permissions:
