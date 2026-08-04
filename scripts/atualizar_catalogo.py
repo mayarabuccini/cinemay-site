@@ -183,6 +183,7 @@ def identificar_titulo(caminho):
 
 
 catalogo = carregar_json(ARQUIVO_CATALOGO)
+revisao = carregar_json(ARQUIVO_REVISAO)
 
 urls_catalogo = {
     item.get("url")
