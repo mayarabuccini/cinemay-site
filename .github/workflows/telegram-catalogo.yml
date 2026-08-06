@@ -1,0 +1,67 @@
+name: Telegram para catálogo
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: telegram-catalogo
+  cancel-in-progress: false
+
+jobs:
+  importar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Preparar Python e OCR
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar Tesseract
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-por
+          pip install -r requirements.txt
+
+      - name: Processar até 20 capas
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_ALLOWED_CHAT_ID: ${{ secrets.TELEGRAM_ALLOWED_CHAT_ID }}
+          TELEGRAM_NOTIFY_CHAT_ID: ${{ secrets.TELEGRAM_NOTIFY_CHAT_ID }}
+          MAX_IMAGES_PER_RUN: "20"
+        run: python scripts/telegram_catalogo.py
+
+      - name: Salvar lote no catálogo
+        run: |
+          if git diff --quiet && [ -z "$(git status --porcelain --untracked-files=normal)" ]; then
+            echo "Nenhuma alteração nova."
+            exit 0
+          fi
+          git config user.name "cinemay-bot"
+          git config user.email "cinemay-bot@users.noreply.github.com"
+          git add fotos.json revisao.json telegram_state.json imagens/
+          git commit -m "Atualizar catálogo via Telegram"
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: Avisar falha da execução
+        if: failure()
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_NOTIFY_CHAT_ID }}
+        run: |
+          curl --fail --silent --show-error \
+            --data-urlencode "chat_id=$CHAT_ID" \
+            --data-urlencode "text=❌ Cinemay — a automação falhou. Abra Actions → Telegram para catálogo e consulte a execução $GITHUB_RUN_NUMBER." \
+            "https://api.telegram.org/bot$BOT_TOKEN/sendMessage"
