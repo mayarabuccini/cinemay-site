@@ -21,9 +21,9 @@ const CONFIG = {
   LINK_TELEGRAM: "https://t.me/cine_may",
 
   // Textos da capa
-  TITULO: "Sua próxima maratona de séries começa aqui.\n",
-  SUBTITULO: "As últimas novidades do canal do Telegram. Toque em qualquer capa para assistir.",
-  CHAMADA: "Quero assistir",
+  TITULO: "As séries ficam aqui.\nO resto fica no Telegram.",
+  SUBTITULO: "As últimas séries do canal. Toque em qualquer capa pra continuar por lá.",
+  CHAMADA: "Abrir no Telegram",
 
   // Fonte 1 (recomendada): lista pronta hospedada do lado do HTML.
   // Formato: [{ "url": "https://...jpg", "legenda": "opcional" }]
@@ -187,16 +187,16 @@ const CONFIG = {
   .busca:focus{ border-color:var(--ouro); outline:none; box-shadow:0 0 0 3px rgba(229,9,20,.15); }
 
   .grade{
-    columns:2;
-    column-gap:12px;
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:12px;
     margin:22px 0 40px;
   }
-  @media (min-width:720px){ .grade{ columns:3; column-gap:16px; } }
-  @media (min-width:1000px){ .grade{ columns:4; } }
+  @media (min-width:720px){ .grade{ grid-template-columns:repeat(3, minmax(0, 1fr)); gap:16px; } }
+  @media (min-width:1000px){ .grade{ grid-template-columns:repeat(4, minmax(0, 1fr)); } }
 
   .cartao{
-    break-inside:avoid;
-    margin:0 0 12px;
+    margin:0;
     position:relative;
     border-radius:var(--raio);
     overflow:hidden;
@@ -296,10 +296,10 @@ const CONFIG = {
 </style>
 </head>
 <body>
-<!-- Forçar nova publicação do GitHub Pages -->
+
 <header class="capa faixa">
   <div class="logo">CINE<span>MAY</span></div>
-  <p class="sobrancelha" id="sobrancelha">Catálogo atualizado</p>
+  <p class="sobrancelha" id="sobrancelha">canal ao vivo</p>
   <h1 id="titulo"></h1>
   <p class="sub" id="subtitulo"></p>
   <a class="balao" id="cta-topo" href="#">
@@ -385,7 +385,13 @@ const CONFIG = {
     if(!Array.isArray(dados)) throw new Error("fotos.json precisa ser uma lista");
     return dados
       .filter(f => f && f.url)
-      .map(f => ({ url:f.url, legenda:f.legenda || "", chave:f.url }));
+      .map((f, indice) => ({
+        url:f.url,
+        legenda:f.legenda || "",
+        chave:f.telegram_file_unique_id || f.url,
+        data:f.recebido_em ? Date.parse(f.recebido_em) || 0 : 0,
+        ordem:indice
+      }));
   }
 
   /* ---------- fonte 2: Bot API ---------- */
@@ -421,7 +427,9 @@ const CONFIG = {
         return {
           url: "https://api.telegram.org/file/bot" + CONFIG.BOT_TOKEN + "/" + jf.result.file_path,
           legenda: f.legenda,
-          chave: f.chave
+          chave: f.chave,
+          data: f.data * 1000,
+          ordem: 0
         };
       }catch(_){ return null; }
     }));
@@ -562,10 +570,11 @@ const CONFIG = {
     try{ fotos = fotos.concat(await doBot()); }
     catch(e){ problemas.push("bot: " + e.message); }
 
-    // remove enderecos repetidos e coloca as inclusoes mais recentes primeiro
+    // Remove repetidas e ordena as mais recentes da esquerda para a direita.
+    // Registros antigos sem "recebido_em" preservam a ordem inversa usada antes.
     const vistas = new Set();
     fotos = fotos.filter(f => (vistas.has(f.chave) ? false : (vistas.add(f.chave), true)));
-    fotos.reverse();
+    fotos.sort((a, b) => (b.data - a.data) || (b.ordem - a.ordem));
 
     if(fotos.length){
       todasAsFotos = fotos;
